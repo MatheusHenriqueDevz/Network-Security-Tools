@@ -1,32 +1,44 @@
 # Port Scan Detector
 
-Este módulo contém um Sistema de Detecção de Intrusão, focado na identificação de varreduras horizontais de portas na rede, acompanhado de um script simulador de ataque (TCP Connect) para validação da ferramenta.
+> Módulo de Detecção de Intrusão (IDS) focado na identificação heurística de varreduras horizontais de reconhecimento (Port Scanning), acompanhado de um script ofensivo em Python para simulação e validação.
 
-## Arquivos do Projeto
+---
 
-* `scan_detector.py`: O script de defesa (Monitor/IDS).
-* `scan.py`: O script de ataque (Simulador de Port Scan).
+## Arquivos do Módulo
 
-## Como Funciona a Detecção
+| Arquivo | Papel | Descrição |
+| :--- | :--- | :--- |
+| `scan_detector.py` | **Defesa (Sensor IDS)** | Monitora a rede passivamente e alerta sobre tentativas de varredura em andamento. |
+| `scan.py` | **Ataque (Simulador)** | Dispara um *TCP Connect Scan* contra portas predefinidas de um alvo para acionar a detecção. |
 
-O detector utiliza a biblioteca Scapy para monitorar o tráfego de rede em busca de pacotes TCP com a flag `SYN` ativada. Para evitar falsos positivos com tráfego legítimo, o script adota a seguinte lógica:
-1. Extrai o IP de origem e a porta de destino de cada pacote SYN.
-2. Armazena as portas acessadas por cada IP em uma estrutura de dados de conjunto (`set`), que ignora tentativas repetidas na mesma porta.
-3. Se um mesmo IP tentar iniciar conexões com portas diferentes que ultrapassem o limite de tolerância estabelecido (ex: 15 portas), o sistema aciona um alerta crítico de segurança no console.
+## Engenharia de Detecção
 
-## Como Executar e Testar
+O script de defesa utiliza a biblioteca Scapy para realizar a inspeção profunda de pacotes (DPI) em tempo real, aplicando a seguinte heurística para minimizar falsos positivos:
 
-Para realizar o teste de validação, são necessários dois terminais rodando simultaneamente. O script de detecção requer privilégios administrativos para capturar pacotes na interface de rede.
+1. **Filtro de Handshake:** O sensor intercepta exclusivamente pacotes TCP com a flag `SYN` ativada (tentativa de início de conexão), ignorando tráfego estabelecido ou respostas.
+2. **Estrutura de Dados de Conjunto:** O sistema armazena as portas alvo acessadas por cada IP de origem em conjuntos matemáticos (`sets`). Isso neutraliza técnicas de ofuscação onde o atacante envia centenas de pacotes para a mesma porta visando burlar contadores simples.
+3. **Threshold Crítico:** Caso o volume de portas únicas testadas por um mesmo IP de origem ultrapasse o limite de tolerância (padrão configurado para 15 portas), o alerta de intrusão é gerado no console.
 
-**1. Iniciando a Defesa (Terminal 1 - Administrador):**
-No Linux:
-`sudo python3 scan_detector.py`
+## Como Executar e Homologar
 
-No Windows (CMD/PowerShell):
-`python scan_detector.py`
+Para homologar a ferramenta em laboratório, utilize dois terminais operando simultaneamente. Devido à captura em baixo nível, o script de detecção requer elevação de privilégios.
 
-**2. Iniciando o Ataque (Terminal 2):**
-Execute o simulador e insira um IP alvo (pode ser um IP externo ou outra máquina da rede local):
-`python scan.py`
+### 1. Iniciar o Sensor de Defesa
+**Ambiente Linux:**
+```bash
+sudo python3 scan_detector.py
+```
 
-*Nota: Em sistemas Windows, o tráfego de loopback (127.0.0.1 para 127.0.0.1) é processado internamente e não passa pela interface de captura física do Npcap. Para testar localmente no Windows, aponte o simulador para um IP externo (ex: 8.8.8.8) para simular uma exfiltração/reconhecimento, ou ataque a partir de uma máquina física distinta.*
+**Ambiente Windows (CMD ou PowerShell elevado):**
+```cmd
+python scan_detector.py
+```
+
+### 2. Disparar a Varredura (Reconhecimento)
+No segundo terminal, execute o simulador ofensivo e insira o IP alvo:
+```cmd
+python scan.py
+```
+
+> **Nota sobre Arquitetura Windows:** 
+> O tráfego de loopback (`127.0.0.1` para si mesmo) é roteado internamente pelo núcleo do Windows e muitas vezes fica invisível para drivers físicos de captura como o Npcap. Para validar a detecção localmente no Windows, aponte o simulador ofensivo para um IP externo (ex: `8.8.8.8`) simulando tráfego de exfiltração, ou realize o ataque a partir de uma máquina física distinta na rede local.

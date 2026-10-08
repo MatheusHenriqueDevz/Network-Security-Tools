@@ -1,32 +1,38 @@
-# Network Security Tools
+# DoS/Flood Traffic Monitor
 
-Repositório destinado à consolidação de scripts e ferramentas para análise de tráfego, monitoramento de rede e detecção de ameaças. O objetivo principal é construir um arsenal focado em segurança defensiva utilizando Python.
-
-## Ferramentas Disponíveis
-
-### 1. DoS/Flood Traffic Monitor
-Um detector de anomalias baseado em volume de tráfego, projetado para identificar ataques de Negação de Serviço (DoS) e TCP Flooding.
-
-**Como funciona:**
-O script utiliza a biblioteca Scapy para inspecionar os pacotes TCP da rede. Ele opera com uma lógica de janela de tempo (ex: 10 segundos) e um limite de requisições por IP de origem (threshold). Se um endereço IP enviar um volume de pacotes superior ao limite preestabelecido dentro dessa janela, o sistema identifica o tráfego anômalo e aciona um alerta de segurança no console, silenciando alertas duplicados logo em seguida para evitar poluição visual.
-
-## Requisitos
-
-* Python 3.x
-* Scapy
-
-Instalação das dependências:
-`pip install scapy`
-
-## Como Executar
-
-A captura e inspeção de tráfego de rede em baixo nível exigem privilégios de administrador para acessar a interface física/virtual.
-
-**No Linux:**
-`sudo python3 traffic_analyzer.py`
-
-**No Windows (CMD ou PowerShell como Administrador):**
-`python traffic_analyzer.py`
+> Módulo de segurança defensiva focado na análise volumétrica de tráfego de rede para detecção precoce de ataques de Negação de Serviço (DoS) e TCP Flooding.
 
 ---
-**Aviso Legal:** Este projeto possui fins estritamente educacionais e acadêmicos. O uso destas ferramentas deve ser restrito a ambientes de laboratório (CTFs) ou redes nas quais você possui autorização explícita para realizar monitoramento.
+
+## Arquivos do Módulo
+
+* `traffic_analyzer.py`: Script principal de monitoramento e análise de tráfego.
+
+## Engenharia de Detecção
+
+O script atua como um sensor de rede passivo. Ele utiliza a biblioteca Scapy para inspecionar os cabeçalhos dos pacotes TCP em tempo real e opera com a seguinte lógica de detecção:
+
+1. **Janela de Monitoramento:** O tráfego de entrada é analisado dentro de blocos de tempo predefinidos (ex: janela de 10 segundos).
+2. **Threshold (Limite de Tolerância):** O sistema mapeia e contabiliza o volume de pacotes originados por cada endereço IP de forma isolada.
+3. **Acionamento e Supressão de Ruído:** Se um IP específico ultrapassar o limite de pacotes configurado dentro da janela de tempo, um alerta de anomalia volumétrica é disparado. Imediatamente após a detecção, o mecanismo silencia os alertas subsequentes vindos desse mesmo IP, evitando que a tela do administrador sofra um flood de logs duplicados.
+
+## Como Executar e Testar
+
+Devido à captura de pacotes em baixo nível (Raw Sockets), o script exige elevação de privilégios para acessar a interface de rede do sistema operacional.
+
+**Ambiente Linux:**
+```bash
+sudo python3 traffic_analyzer.py
+```
+
+**Ambiente Windows (CMD ou PowerShell elevado):**
+```cmd
+python traffic_analyzer.py
+```
+
+### Simulando um Ataque para Validação
+Para testar o gatilho de detecção em ambiente de laboratório, você pode utilizar ferramentas de injeção de pacotes (como o `hping3` no Linux) a partir de uma máquina atacante direcionada ao IP do defensor:
+
+```bash
+sudo hping3 -S --flood -p 80 <IP_DO_DEFENSOR>
+```
